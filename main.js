@@ -68,3 +68,5 @@ bot.command('news', async ctx => {
 
 // start the bot
 bot.launch()
+
+app.listen(process.env.PORT || 3000);
