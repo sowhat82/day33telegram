@@ -11,33 +11,12 @@ const {MenuTemplate, MenuMiddleware} = require('telegraf-inline-menu')
 const bot = new Telegraf(global.env.TELEGRAM_TOKEN)
 const app = express()
 const photoURL = ""
+const newsapiurl = 'http://newsapi.org/v2/top-headlines'
+const apikey = global.env.NEWS_API_KEY
 
-// when a user starts a session with the bot
-bot.start(ctx => {
+const fetchNews = async (country, ctx) => {
 
-    // 2 ways to display a welcome picture, either by URL, or by a local file
-    // ctx.replyWithPhoto(photoURL, {caption: 'Hello!!!'})
-    // fs.readFile(__dirname + '/images/img-file.jpg').then((buffer) => {
-    //     ctx.replyWithPhoto({ source: buffer });
-    //   });
-
-    ctx.reply('Welcome to my Bot')
-})
-
-bot.hears('hi', ctx => ctx.reply ('hi there!'))
-
-bot.command('news', async ctx => {
-    
-    const country = ctx.message.text.substring(6)
-    const newsapiurl = 'http://newsapi.org/v2/top-headlines'
-    const apikey = global.env.NEWS_API_KEY
-
-    // display the menu if no country is specified with the command
-    if (country.length<=0){
-        return menuMiddleware.replyToContext(ctx)
-    }
-
-    ctx.reply(`noted that you want some news from ${country}`)
+    ctx.reply(`Retrieving top 3 news articles from ${country}`)
 
     //construct the url with the query parameters
     const url = withquery(
@@ -70,11 +49,40 @@ bot.command('news', async ctx => {
     for(var i=0; i < results.length; i++) {
         ctx.reply(results[i].title + '\n\n' + results[i].summary + '\n\n' + results[i].url)
     }
+}
+
+// when a user starts a session with the bot
+bot.start(ctx => {
+
+    // 2 ways to display a welcome picture, either by URL, or by a local file
+
+    // ctx.replyWithPhoto(photoURL, {caption: 'Hello!!!'})
+
+    // fs.readFile(__dirname + '/images/img-file.jpg').then((buffer) => {
+    //     ctx.replyWithPhoto({ source: buffer });
+    //   });
+
+    ctx.reply('Welcome to News Bot')
+})
+
+bot.hears('hi', ctx => ctx.reply ('hi there2!'))
+
+bot.command('news', async ctx => {
+    
+    const country = ctx.message.text.substring(6)
+
+    // display the menu if no country is specified with the command
+    if (country.length<=0){
+        return menuMiddleware.replyToContext(ctx)
+    }
+
+
+    fetchNews(country, ctx)
 
 })
 
 // create a menu
-const menuTemplate = new MenuTemplate(ctx => `Hey ${ctx.from.first_name}!`)
+const menuTemplate = new MenuTemplate(ctx => `Hey ${ctx.from.first_name}! Select a country to continue...`)
 
 menuTemplate.interact('SG', 'sg', {
     do: async ctx => ctx.answerCbQuery('SG').then(() => true)
@@ -88,8 +96,14 @@ menuTemplate.interact('KR', 'kr', {
   })
 
 const menuMiddleware = new MenuMiddleware('/', menuTemplate)
-// // bot.c ommand('test', ctx => menuMiddleware.replyToContext(ctx))    
-bot.use(menuMiddleware)
+
+bot.use((ctx, next) => {
+    if (ctx.callbackQuery != null) {
+        const country = ctx.callbackQuery.data.substring(1)
+        return fetchNews(country, ctx)
+    }
+    next()
+})
 
 // start the bot
 bot.launch()
