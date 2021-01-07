@@ -1,4 +1,5 @@
 const {Telegraf} = require ('telegraf')
+const express = require('express')
 const secureEnv = require('secure-env')
 global.env = secureEnv({secret:'mySecretPassword'})
 const fs = require ('fs/promises')
@@ -7,7 +8,7 @@ const fetch = require('node-fetch')
 
 //create a bot
 const bot = new Telegraf(global.env.TELEGRAM_TOKEN)
-
+const app = express()
 const photoURL = ""
 
 // when a user starts a session with the bot
